@@ -1,76 +1,181 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
-# All Vagrant configuration is done below. The "2" in Vagrant.configure
-# configures the configuration version (we support older styles for
-# backwards compatibility). Please don't change it unless you know what
-# you're doing.
+# Networking
+private_ip = ENV['PRIVATE_IP'] || "192.168.50.162"
+
+# Base box selection
+base_box = ENV['BASE_BOX'] || "bento/ubuntu-16.04"
+
+# Consul variables
+consul_install = ["true", "1"].include?((ENV['CONSUL_INSTALL'] || true).to_s.downcase)
+consul_host_port = ENV['CONSUL_HOST_PORT'] || 8500
+consul_version = ENV['CONSUL_VERSION'] || "1.2.0"
+consul_ent_url = ENV['CONSUL_ENT_URL']
+consul_group = "consul"
+consul_user = "consul"
+consul_comment = "Consul"
+consul_home = "/srv/consul"
+
+# Vault variables
+vault_host_port = ENV['VAULT_HOST_PORT'] || 8200
+vault_version = ENV['VAULT_VERSION'] || "0.10.3"
+vault_ent_url = ENV['VAULT_ENT_URL']
+vault_group = "vault"
+vault_user = "vault"
+vault_comment = "Vault"
+vault_home = "/srv/vault"
+
+# Wetty variables
+wetty_host_port = ENV['WETTY_HOST_PORT'] || 3030
+wetty_install = ["true", "1"].include?((ENV['WETTY_INSTALL'] || true).to_s.downcase)
+wetty_group = ENV['WETTY_GROUP'] || "wetty"
+wetty_user = ENV['WETTY_USER'] || "wetty"
+wetty_password = ENV['WETTY_PASSWORD'] || "wetty"
+wetty_comment = "Wetty Web Terminal SSH user"
+
+# Tests & cleanup
+run_tests = ["true", "1"].include?((ENV['RUN_TESTS'] || false).to_s.downcase)
+cleanup = ["true", "1"].include?((ENV['CLEANUP'] || true).to_s.downcase)
+
 Vagrant.configure("2") do |config|
-  # The most common configuration options are documented and commented below.
-  # For a complete reference, please see the online documentation at
-  # https://docs.vagrantup.com.
+  # Use vagrant insecure public key, comment this out to restrict access
+  config.ssh.insert_key = false
 
-  # Every Vagrant development environment requires a box. You can search for
-  # boxes at https://vagrantcloud.com/search.
-  config.vm.box = "centos/6"
+  # Setup networking
+  config.vm.network :private_network, ip: private_ip
+  config.vm.network "private_network", type: "dhcp"
 
-  # Disable automatic box update checking. If you disable this, then
-  # boxes will only be checked for updates when the user runs
-  # `vagrant box outdated`. This is not recommended.
-  # config.vm.box_check_update = false
+  # Use base_box set at the top of this file
+  config.vm.box = base_box
+  config.vm.hostname = "vault"
 
-  # Create a forwarded port mapping which allows access to a specific port
-  # within the machine from a port on the host machine. In the example below,
-  # accessing "localhost:8080" will access port 80 on the guest machine.
-  # NOTE: This will enable public access to the opened port
-  # config.vm.network "forwarded_port", guest: 80, host: 8080
+  # Copy the Consul, Vault, and shared directories to the vm
+  config.vm.provision "file", source: "../../guides-configuration", destination: "/tmp"
 
-  # Create a forwarded port mapping which allows access to a specific port
-  # within the machine from a port on the host machine and only allow access
-  # via 127.0.0.1 to disable public access
-  # config.vm.network "forwarded_port", guest: 80, host: 8080, host_ip: "127.0.0.1"
+  # Bootstrap the vm
+  config.vm.provision "shell", inline: "bash /tmp/shared/scripts/base.sh"
 
-  # Create a private network, which allows host-only access to the machine
-  # using a specific IP.
-  # config.vm.network "private_network", ip: "192.168.33.10"
+  if (consul_install)
+    # Forward Consul port
+    config.vm.network :forwarded_port, guest: 8500, host: consul_host_port, auto_correct: true
 
-  # Create a public network, which generally matched to bridged network.
-  # Bridged networks make the machine appear as another physical device on
-  # your network.
-  # config.vm.network "public_network"
+    # Setup Consul user
+    config.vm.provision "shell", inline: "bash /tmp/shared/scripts/setup-user.sh",
+      env: {
+        "GROUP" => consul_group,
+        "USER" => consul_user,
+        "COMMENT" => consul_comment,
+        "HOME" => consul_home,
+      }
 
-  # Share an additional folder to the guest VM. The first argument is
-  # the path on the host to the actual folder. The second argument is
-  # the path on the guest to mount the folder. And the optional third
-  # argument is a set of non-required options.
-  # config.vm.synced_folder "../data", "/vagrant_data"
+    # Install Consul
+    config.vm.provision "shell", inline: "bash /tmp/consul/scripts/install-consul.sh",
+      env: {
+        "VERSION" => consul_version,
+        "URL" => consul_ent_url,
+        "USER" => consul_user,
+        "GROUP" => consul_group,
+      }
 
-  # Provider-specific configuration so you can fine-tune various
-  # backing providers for Vagrant. These expose provider-specific options.
-  # Example for VirtualBox:
-  #
-  # config.vm.provider "virtualbox" do |vb|
-  #   # Display the VirtualBox GUI when booting the machine
-  #   vb.gui = true
-  #
-  #   # Customize the amount of memory on the VM:
-  #   vb.memory = "1024"
-  # end
-  #
-  # View the documentation for the provider you are using for more
-  # information on available options.
+    config.vm.provision "shell", inline: "bash /tmp/consul/scripts/install-consul-systemd.sh"
+  end
 
-  # Enable provisioning with a shell script. Additional provisioners such as
-  # Ansible, Chef, Docker, Puppet and Salt are also available. Please see the
-  # documentation for more information about their specific syntax and use.
-  # config.vm.provision "shell", inline: <<-SHELL
-  #   apt-get update
-  #   apt-get install -y apache2
-  # SHELL
+  # Forward Vault port
+  config.vm.network :forwarded_port, guest: 8200, host: vault_host_port, auto_correct: true
 
-  config.vm.provision "shell", inline: <<-SHELL
-    wget https://releases.hashicorp.com/vault/1.4.1/vault_1.4.1_linux_amd64.zip
-    unzip vault_1.4.1_linux_amd64.zip
-    sudo mv vault /usr/local/bin
-  SHELL
+  # Setup Vault user
+  config.vm.provision "shell", inline: "bash /tmp/shared/scripts/setup-user.sh",
+    env: {
+      "GROUP" => vault_group,
+      "USER" => vault_user,
+      "COMMENT" => vault_comment,
+      "HOME" => vault_home,
+    }
+
+  # Install Vault
+  config.vm.provision "shell", inline: "bash /tmp/vault/scripts/install-vault.sh",
+    env: {
+      "VERSION" => vault_version,
+      "URL" => vault_ent_url,
+      "USER" => vault_user,
+      "GROUP" => vault_group,
+    }
+
+  config.vm.provision "shell", inline: "bash /tmp/vault/scripts/install-vault-systemd.sh"
+
+  if (wetty_install)
+    # Forward Wetty port
+    config.vm.network :forwarded_port, guest: 3030, host: wetty_host_port, auto_correct: true
+
+    # Install Wetty
+    config.vm.provision "shell", inline: "bash /tmp/shared/scripts/web-terminal.sh"
+    config.vm.provision "shell", inline: "bash /tmp/shared/scripts/setup-ssh-user.sh",
+      env: {
+        "GROUP" => wetty_group,
+        "USER" => wetty_user,
+        "PASSWORD" => wetty_password,
+        "COMMENT" => wetty_comment,
+      }
+  end
+
+  # Run tests if `RUN_TESTS` env var is provided
+  if (run_tests)
+    config.vm.provision "shell", inline: "cd /tmp && bash /tmp/shared/scripts/setup-testing.sh"
+    config.vm.provision "shell", inline: "cd /tmp && rake vault:spec"
+  end
+
+  # Cleanup if `CLEANUP` env var is provided
+  if (cleanup)
+    config.vm.provision "shell", inline: "bash /tmp/shared/scripts/cleanup.sh"
+  end
+
+  # Increase memory for Parallels Desktop
+  config.vm.provider "parallels" do |p, o|
+    p.memory = "1024"
+  end
+
+  # Increase memory for Virtualbox
+  config.vm.provider "virtualbox" do |vb|
+    vb.memory = "1024"
+  end
+
+  # Increase memory for VMware
+  ["vmware_fusion", "vmware_workstation"].each do |p|
+    config.vm.provider p do |v|
+      v.vmx["memsize"] = "1024"
+    end
+  end
+
+   config.vm.post_up_message = "
+Your Vault dev cluster has been successfully provisioned!
+
+To SSH into a Vault host, run the below command.
+
+  $ vagrant ssh
+
+You can interact with Vault using any of the CLI (https://www.vaultproject.io/docs/commands/index.html)
+or API (https://www.vaultproject.io/api/index.html) commands.
+
+  # The Root token for your Vault -dev instance is set to `root` and placed in /srv/vault/.vault-token,
+  # the `VAULT_TOKEN` environment variable has already been set for you
+  $ echo $VAULT_TOKEN
+  $ sudo cat /srv/vault/.vault-token
+
+  # Use the CLI to write and read a generic secret
+  $ vault kv put secret/cli foo=bar
+  $ vault kv get secret/cli
+
+  # Use the API to write and read a generic secret
+  $ curl -H \"X-Vault-Token: $VAULT_TOKEN\" -X POST -d '{\"data\": {\"bar\":\"baz\"}}' http://127.0.0.1:8200/v1/secret/data/api | jq '.'
+  $ curl -H \"X-Vault-Token: $VAULT_TOKEN\" http://127.0.0.1:8200/v1/secret/data/api | jq '.'
+
+Visit the Vault UI: http://#{private_ip}:#{vault_host_port}
+#{consul_install ? 'Visit the Consul UI: http://'+ private_ip + ':' + consul_host_port.to_s : ''}
+#{wetty_install ? 'Visit the Web Terminal (u: ' + wetty_user + '/p: ' + wetty_password + '): http://' + private_ip + ':' + wetty_host_port.to_s : ''}
+
+Don't forget to tear your VM down after.
+
+  $ vagrant destroy
+"
 end
