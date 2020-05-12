@@ -1,0 +1,1 @@
+https://github.com/hashicorp/guides-configuration/blob/master/vault/scripts/install-vault.sh
