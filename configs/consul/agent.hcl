@@ -1,4 +1,4 @@
-datacenter = "dc0"
+datacenter = "dc1"
 data_dir = "/opt/consul"
 encrypt = "sJ4givaF082CMF4rjWKdVQ=="
 bind_addr = "10.0.2.15"

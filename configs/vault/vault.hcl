@@ -3,8 +3,7 @@ ui = true
 listener "tcp" {
   address          = "0.0.0.0:8200"
   cluster_address  = "0.0.0.0:8201"
-  tls_cert_file = "/etc/vault/certs/vault_cert.crt"
-  tls_key_file = "/etc/vault/certs/vault_cert.key"
+  tls_disable = true
 }
 
 storage "consul" {

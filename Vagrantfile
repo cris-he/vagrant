@@ -10,6 +10,7 @@ base_box = ENV['BASE_BOX'] || "centos/6"
 # Consul variables
 consul_host_port = ENV['CONSUL_HOST_PORT'] || 8500
 consul_version = ENV['CONSUL_VERSION'] || "1.7.3"
+consul_config_path = ENV['CONSUL_VERSION'] || "/etc/consul.d"
 
 # Vault variables
 vault_host_port = ENV['VAULT_HOST_PORT'] || 8200
@@ -44,6 +45,12 @@ Vagrant.configure("2") do |config|
   config.vm.provision "shell", inline: "bash /tmp/scripts/consul/install.sh",
   env: {
     "VERSION" => consul_version,
+  }
+
+  # Init Consul
+  config.vm.provision "shell", inline: "bash /tmp/scripts/consul/init.sh",
+  env: {
+    "VERSION" => consul_config_path,
   }
 
   # Install Consul
