@@ -15,6 +15,7 @@ consul_config_path = ENV['CONSUL_VERSION'] || "/etc/consul.d"
 # Vault variables
 vault_host_port = ENV['VAULT_HOST_PORT'] || 8200
 vault_version = ENV['VAULT_VERSION'] || "1.4.1"
+vault_config_path = ENV['CONSUL_VERSION'] || "/etc/vault.d"
 
 Vagrant.configure("2") do |config|
   config.vm.box = "centos/7"
@@ -30,7 +31,6 @@ Vagrant.configure("2") do |config|
   end
 
   config.vm.provision "file", source: "./scripts", destination: "/tmp/scripts"
-  config.vm.provision "file", source: "./configs", destination: "/tmp/configs"
   config.vm.provision "file", source: "./systemd", destination: "/tmp/systemd"
 
   config.vm.provision "shell", inline: <<-SHELL
@@ -50,12 +50,18 @@ Vagrant.configure("2") do |config|
   # Init Consul
   config.vm.provision "shell", inline: "bash /tmp/scripts/consul/init.sh",
   env: {
-    "VERSION" => consul_config_path,
+    "CONSUL_CONFIG_PATH" => consul_config_path,
   }
 
-  # Install Consul
+  # Install Vault
   config.vm.provision "shell", inline: "bash /tmp/scripts/vault/install.sh",
   env: {
     "VERSION" => vault_version,
+  }
+
+  # Init Vault
+  config.vm.provision "shell", inline: "bash /tmp/scripts/vault/init.sh",
+  env: {
+    "VAULT_CONFIG_PATH" => vault_config_path,
   }
 end
