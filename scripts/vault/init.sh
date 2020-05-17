@@ -7,7 +7,7 @@ sudo touch /etc/vault.d/vault.hcl
 sudo chown --recursive vault:vault /etc/vault.d
 sudo chmod 777 /etc/vault.d/vault.hcl
 
-cat > /etc/vault.d/vault.hcl << 'EOF'
+cat > /etc/vault.d/vault.hcl << EOF
 ui = true
 
 listener "tcp" {
@@ -21,8 +21,8 @@ storage "consul" {
   path    = "vault/"
 }
 
-api_addr =  "https://10.0.2.15:8200"
-cluster_addr = "https://10.0.2.15:8201"
+api_addr =  "http://10.0.2.15:8200"
+cluster_addr = "http://10.0.2.15:8201"
 disable_mlock = true
 EOF
 

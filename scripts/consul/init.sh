@@ -11,7 +11,7 @@ sudo touch /etc/consul.d/consul.hcl
 sudo chown --recursive consul:consul /etc/consul.d
 sudo chmod 777 /etc/consul.d/consul.hcl
 
-cat > /etc/consul.d/consul.hcl << 'EOF'
+cat > /etc/consul.d/consul.hcl << EOF
 datacenter = "dc1"
 data_dir = "/opt/consul"
 advertise_addr = "10.0.2.15"
@@ -25,7 +25,7 @@ sudo touch /etc/consul.d/server.hcl
 sudo chown --recursive consul:consul /etc/consul.d
 sudo chmod 777 /etc/consul.d/server.hcl
 
-cat > /etc/consul.d/server.hcl << 'EOF'
+cat > /etc/consul.d/server.hcl << EOF
 server = true
 bootstrap_expect = 1
 ui = true
