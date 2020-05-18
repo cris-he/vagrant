@@ -15,7 +15,7 @@ consul_config_path = ENV['CONSUL_VERSION'] || "/etc/consul.d"
 # Vault variables
 vault_host_port = ENV['VAULT_HOST_PORT'] || 8200
 vault_version = ENV['VAULT_VERSION'] || "1.4.1"
-vault_config_path = ENV['CONSUL_VERSION'] || "/etc/vault.d"
+vault_config_path = ENV['VAULT_VERSION'] || "/etc/vault.d/vault.hcl"
 
 Vagrant.configure("2") do |config|
   config.vm.box = "centos/7"
@@ -30,38 +30,43 @@ Vagrant.configure("2") do |config|
     # vb.memory = "1024"
   end
 
-  config.vm.provision "file", source: "./scripts", destination: "/tmp/scripts"
-  config.vm.provision "file", source: "./systemd", destination: "/tmp/systemd"
-
   config.vm.provision "shell", inline: <<-SHELL
-    sudo cp /tmp/systemd/* /etc/systemd/system
+    sudo cp /vagrant/systemd/* /etc/systemd/system
   SHELL
 
   # Install Basics
-  config.vm.provision "shell", inline: "bash /tmp/scripts/basics.sh",
+  config.vm.provision "shell", path: "./scripts/basics.sh",
   env: {}
 
   # Install Consul
-  config.vm.provision "shell", inline: "bash /tmp/scripts/consul/install.sh",
+  config.vm.provision "shell", path: "./scripts/consul/install.sh",
   env: {
     "VERSION" => consul_version,
   }
 
-  # Init Consul
-  config.vm.provision "shell", inline: "bash /tmp/scripts/consul/init.sh",
-  env: {
-    "CONSUL_CONFIG_PATH" => consul_config_path,
-  }
+  # Start Consul
+  config.vm.provision "shell", path: "./scripts/consul/service.sh"
 
   # Install Vault
-  config.vm.provision "shell", inline: "bash /tmp/scripts/vault/install.sh",
+  config.vm.provision "shell", path: "./scripts/vault/install.sh",
   env: {
     "VERSION" => vault_version,
   }
 
+  # Start Vault
+  config.vm.provision "shell", path: "./scripts/vault/service.sh"
+
   # Init Vault
-  config.vm.provision "shell", inline: "bash /tmp/scripts/vault/init.sh",
+  config.vm.provision "shell", path: "./scripts/vault/init.sh",
   env: {
-    "VAULT_CONFIG_PATH" => vault_config_path,
+    "VAULT_ADDR" => 'http://192.168.33.10:8200',
+    "CONSUL_ADDR" => '192.168.33.10:8500',
+  }
+
+  # Unseal Vault
+  config.vm.provision "shell", path: "./scripts/vault/unseal.sh",
+  env: {
+    "VAULT_ADDR" => 'http://192.168.33.10:8200',
+    "CONSUL_ADDR" => '192.168.33.10:8500',
   }
 end

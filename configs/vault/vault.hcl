@@ -11,6 +11,6 @@ storage "consul" {
   path    = "vault/"
 }
 
-api_addr =  "https://10.0.2.15:8200"
-cluster_addr = "https://10.0.2.15:8201"
+api_addr =  "http://10.0.2.15:8200"
+cluster_addr = "http://10.0.2.15:8201"
 disable_mlock = true

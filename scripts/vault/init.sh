@@ -1,31 +1,18 @@
-#Prepare for systemd
-sudo useradd --system --home /etc/vault.d --shell /bin/false vault
+# Setup bashrc
+# echo "source /vagrant/configs/vault/.bashrc" >> /home/vagrant/.bashrc
+echo "export VAULT_ADDR=http://127.0.0.1:8200" >> /home/vagrant/.bashrc
 
-#Create general config
-sudo mkdir --parents /etc/vault.d
-sudo touch /etc/vault.d/vault.hcl
-sudo chown --recursive vault:vault /etc/vault.d
-sudo chmod 777 /etc/vault.d/vault.hcl
+echo "CONSULE_ADDR" ${CONSUL_ADDR}
 
-cat > /etc/vault.d/vault.hcl << EOF
-ui = true
+/usr/local/bin/vault operator init | tee /tmp/vault.init > /dev/null
 
-listener "tcp" {
-  address          = "0.0.0.0:8200"
-  cluster_address  = "0.0.0.0:8201"
-  tls_disable = true
-}
+# Store master keys in consul for operator to retrieve and remove
+COUNTER=1
+cat /tmp/vault.init | grep '^Unseal' | awk '{print $4}' | for key in $(cat -); do
+curl -fX PUT 192.168.33.10:8500/v1/kv/vault/secrets/unseal-key-$COUNTER -d $key
+COUNTER=$((COUNTER + 1))
+done
 
-storage "consul" {
-  address = "127.0.0.1:8500"
-  path    = "vault/"
-}
-
-api_addr =  "http://10.0.2.15:8200"
-cluster_addr = "http://10.0.2.15:8201"
-disable_mlock = true
-EOF
-
-sudo systemctl enable vault
-sudo systemctl start vault
-sudo systemctl status vault
+export ROOT_TOKEN=$(cat /tmp/vault.init | grep '^Initial' | awk '{print $4}')
+echo "export VAULT_TOKEN=${ROOT_TOKEN}" >> /home/vagrant/.bashrc
+curl -fX PUT 192.168.33.10:8500/v1/kv/vault/secrets/root-token -d $ROOT_TOKEN
