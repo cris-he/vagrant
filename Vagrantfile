@@ -21,9 +21,12 @@ Vagrant.configure("2") do |config|
   config.vm.provision "shell", path: "./scripts/basics.sh",
   env: {}
 
-  # Install Docker
+  # Install Docker & Init
   config.vm.provision "shell", path: "./scripts/docker.sh",
   env: {}
 
+  # Install k8s & Init
+  config.vm.provision "shell", path: "./scripts/k8s.sh",
+  env: {}
 
 end
