@@ -4,4 +4,6 @@ sudo yum-config-manager \
 
 sudo yum install -y docker-ce docker-ce-cli containerd.io
 
+systemctl enable docker
+
 sudo systemctl start docker
