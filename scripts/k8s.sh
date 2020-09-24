@@ -1,3 +1,4 @@
+# Pre configs
 systemctl disable firewalld
 systemctl stop firewalld
 
@@ -15,7 +16,7 @@ net.bridge.bridge-nf-call-iptables = 1
 EOF
 sysctl --system
 
-
+# Install k8s
 cat <<EOF > /etc/yum.repos.d/kubernetes.repo
 [kubernetes]
 name=Kubernetes
@@ -29,8 +30,10 @@ EOF
 
 yum install -y kubectl-1.16.0-0 kubeadm-1.16.0-0 kubelet-1.16.0-0
 
+# Start k8s
 systemctl enable kubelet && systemctl start kubelet
 
+# Init k8s
 sudo kubeadm init --pod-network-cidr=10.244.0.0/16
 
 mkdir -p $HOME/.kube
@@ -40,3 +43,8 @@ sudo chown $(id -u):$(id -g) $HOME/.kube/config
 sudo kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
 
 kubectl taint nodes --all node-role.kubernetes.io/master-
+
+
+# Install k9s
+curl -sLo - https://github.com/derailed/k9s/releases/download/v0.22.1/k9s_Linux_x86_64.tar.gz |tar xfz - \
+mv k9s /usr/local/bin/k9s
