@@ -1,5 +1,5 @@
 # VM Configs
-vm_name = "k8s"
+vm_name = "docker"
 vm_ram = "4096"
 vm_cpu = "2"
 vm_ip = ENV['PRIVATE_IP'] || "192.168.33.10"
@@ -23,10 +23,6 @@ Vagrant.configure("2") do |config|
 
   # Install Docker & Init
   config.vm.provision "shell", path: "./scripts/docker.sh",
-  env: {}
-
-  # Install k8s & Init
-  config.vm.provision "shell", path: "./scripts/k8s.sh",
   env: {}
 
 end
