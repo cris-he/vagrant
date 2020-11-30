@@ -46,5 +46,5 @@ kubectl taint nodes --all node-role.kubernetes.io/master-
 
 
 # Install k9s
-curl -sLo - https://github.com/derailed/k9s/releases/download/v0.22.1/k9s_Linux_x86_64.tar.gz |tar xfz - \
-mv k9s /usr/local/bin/k9s
+curl -sLo - https://github.com/derailed/k9s/releases/download/v0.22.1/k9s_Linux_x86_64.tar.gz |tar xfz -
+mv k9s /usr/local/bin
